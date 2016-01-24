@@ -33,11 +33,63 @@ vector<string> readStringsFromFile(string f_name) {
     return vs;
 }
 
+
+
 // "search & replace all"
 void replace_strings(std::string& subject, const std::string& search, const std::string& replace) { 
     size_t pos = 0;
     while((pos = subject.find(search, pos)) != std::string::npos) { subject.replace(pos, search.length(), replace); pos += replace.length(); }
 }
+
+// extract the knot name from string, b = string includes a "bar"
+string trim_string(string s, bool *b) {
+    size_t f1 = s.find('(');
+    size_t f2 = s.find(')');
+    string sa = s.substr(f1+1, f2-f1-1); // trim
+    *b = (sa.find("bar") != sa.npos); // does the string have a "bar"?
+    if (*b) { // if it has a bar, trim it off
+        sa.erase(0,5);
+        sa.erase(sa.end()-1);
+    }
+    if (sa.find("*") != sa.npos) sa.erase(0,1);
+    return sa;
+}
+        
+
+// sort two strings by knot name, i.e. 
+bool name_sort(string a, string b) {
+            //    return (i<j);
+    string sa, sb;
+    bool bar_a, bar_b;
+    int crs_a, crs_b, ind_a, ind_b, ia, ib;
+    // get knot name and bar info
+    sa = trim_string(a, &bar_a);
+    sb = trim_string(b, &bar_b);
+    
+    // convert number of crossings and index to integers
+    ia = ib = 0;
+    crs_a = next_int(sa,&ia); ia+=2;
+    ind_a = next_int(sa,&ia);
+    crs_b = next_int(sb,&ib); ib+=2;
+    ind_b = next_int(sb,&ib);
+    // return
+    if (crs_a != crs_b) return (crs_a < crs_b);
+    if (ind_a != ind_b) return (ind_a < ind_b);
+    if (bar_a == bar_b) return false;
+    return !bar_a;
+    //return (bar_a == bar_b ? false : (!bar_a));
+}
+        
+		
+struct less_than_name {
+    inline bool operator() (const string& s1, const string& s2)
+    {
+        return name_sort(s1, s2);
+    }
+    };
+
+
+
 
 // convert HSM generators from human to computer readable form
 void human_to_computer(std::string &s) {
@@ -147,7 +199,7 @@ void save_HOMFLYs(t_poly_vector *HOMLFYS, string s) {
 
 // CLASSIFICATION FUNCTIONS
 
-// saves which knots are marked as primes and which are marked as duplicates (torus)
+// saves which knots are marked as primes and which are marked as print_non_duplicates (torus)
 void saveClassification(string s) {
     ofstream file;
     file.open (s.c_str());
@@ -620,54 +672,130 @@ void latex_tabulate_knot_table() {
 }
         
 
-// extract the knot name from string, b = string includes a "bar"
-string trim_string(string s, bool *b) {
-    size_t f1 = s.find('(');
-    size_t f2 = s.find(')');
-    string sa = s.substr(f1+1, f2-f1-1); // trim
-    *b = (sa.find("bar") != sa.npos); // does the string have a "bar"?
-    if (*b) { // if it has a bar, trim it off
-        sa.erase(0,5);
-        sa.erase(sa.end()-1);
-    }
-    if (sa.find("*") != sa.npos) sa.erase(0,1);
-    return sa;
-}
-        
-// sort two strings by knot name, i.e. 
-bool name_sort(string a, string b) {
-            //    return (i<j);
-    string sa, sb;
-    bool bar_a, bar_b;
-    int crs_a, crs_b, ind_a, ind_b, ia, ib;
-    // get knot name and bar info
-    sa = trim_string(a, &bar_a);
-    sb = trim_string(b, &bar_b);
+
+// generates the latex knot table (in terms of PDFs)
+void latex_tabulate_knot_table_lpq() {
+    Cknot *K;
     
-    // convert number of crossings and index to integers
-    ia = ib = 0;
-    crs_a = next_int(sa,&ia); ia+=2;
-    ind_a = next_int(sa,&ia);
-    crs_b = next_int(sb,&ib); ib+=2;
-    ind_b = next_int(sb,&ib);
-    // return
-    if (crs_a != crs_b) return (crs_a < crs_b);
-    if (ind_a != ind_b) return (ind_a < ind_b);
-    if (bar_a == bar_b) return false;
-    return !bar_a;
-    //return (bar_a == bar_b ? false : (!bar_a));
+    ostringstream ss;
+    string s, *ps;
+    vector<string> vs;
+    
+    generate_knot_names_bar(); // 0_1, 1_1, 1_2,...
+    LATEX = YES; //
+    CAPITALS_FIRST = false; //
+    
+    cout << endl << endl;
+    cout << "\\chapter{The knot tables}" << endl << endl;
+    
+    // sort strings by knot name
+    sort (vs.begin(), vs.end(), less_than_name());
+    // print HSM
+    for (vector<string>::iterator is = vs.begin(); is != vs.end(); is++) cout << (*is);
+    
+    //generate_knot_names(false); // 0_1, 1_1, 1_2,...
+    cout << endl << endl;
+    
+    Cmultivariate * pl, *pt, *pl_, *pt_;
+    
+    cout << "\\newpage" << endl;
+    
+
+
+    for (int l=0;l<N_HOMEO;l++) if (lens_homeo[l][1] == 1){ // loop through all lens spaces
+
+        cout << endl << endl;
+        cout << "\\section*{Knots in $" << lpq_s[l] <<"$}" << endl << endl;
+        
+        vs.clear();
+		
+		int counter = 0;
+		
+		int prev_kr = 0;
+		int kr = 0;
+		
+		int count_table[6] = {0,0,0,0,0,0};
+		
+
+        for (int k=0;k<n_prime;k++) { // loop through knots
+        
+            if (classification_lpq[l][knot_name_ID[k]].duplicate) continue;
+        
+            K = (k == 0) ? new Cknot("Knot 0: 1 -1 + 0 *1 &01") : K = get_knot_by_id(knot_name_ID[k]);
+		
+            if (winding_number(K) < 0) K->reverse();
+         
+		 
+		  //  pt = HOMFLY(K); pt->simplify();
+          //  pl = HSM_lpq(l,HOMFLY(K)); pl->simplify();
+        
+		
+		
+            pt = KBSM(K);
+            pl = KBSM_lpq(l, KBSM(K));
+                    
+            pt_ = pt->deepCopy();
+            pl_ = pl->deepCopy();
+                    
+            normalize_framing(pt_);
+            normalize_framing(pl_);
+			
+			
+			//cout << "(" << pl->terms.size();
+			//cout << "," << (int)K->n << ")"<< endl;
+		
+			//if ((!full) && (*pt == *pl)) continue; // do not print knots if the HOMLFY is equal to that of the solid torus
+
+            // print output to string stream ss
+            // empty string
+            ss.str(""); ss.clear();
+            
+		//	ss << "$";
+            ss  <<knot_name[k] ;
+			
+		//	ss <<  "$";
+				
+			count_table[(int)K->n] += 1;
+				
+			if ((pl->terms.size() == 1) && ((int)K->n > 0)) {
+					
+				count_table[(int)K->n] -= 1;
+						ss << " dup " << pl << " ";
+					
+					
+			}
+				
+			ss << " & ";
+			
+            s = ss.str();
+            ps = new string(s);
+    
+            // place the string into the vector vs
+            vs.push_back(*ps);
+        }
+  
+        // sort strings by knot name
+        sort (vs.begin(), vs.end(), less_than_name());
+        // print HSM
+        for (vector<string>::iterator is = vs.begin(); is != vs.end(); is++)
+            cout << (*is);
+		
+		cout << endl;
+		
+		for (int y=0;y<6;y++)
+			cout << count_table[y] << " ";
+		
+		cout << endl;
+    }
+    return;
 }
         
-struct less_than_name {
-    inline bool operator() (const string& s1, const string& s2)
-    {
-        return name_sort(s1, s2);
-    }
-    };
+
+
 
         
 // tabulate the HOMLFY skein modules in latex form
-void latex_tabulate_HOMFLY_table() {
+void latex_tabulate_HOMFLY_table(bool full = false) {
     Cknot *K;
     
     ostringstream ss;
@@ -734,7 +862,7 @@ void latex_tabulate_HOMFLY_table() {
             pt = HOMFLY(K); pt->simplify();
             pl = HSM_lpq(l,HOMFLY(K)); pl->simplify();
         
-            if (*pt == *pl) continue; // do not print knots if the HOMLFY is equal to that of the solid torus
+			if ((!full) && (*pt == *pl)) continue; // do not print knots if the HOMLFY is equal to that of the solid torus
 
             // print output to string stream ss
             // empty string
@@ -762,9 +890,10 @@ void latex_tabulate_HOMFLY_table() {
     }
     return;
 }
+
         
 // tabulate the KBSMs in latex form
-void latex_tabulate_KBSM_table() {
+void latex_tabulate_KBSM_table(bool full = false) {
     Cknot *K;
     
     ostringstream ss;
@@ -829,6 +958,7 @@ void latex_tabulate_KBSM_table() {
             normalize_framing(pt_);
             normalize_framing(pl_);
                     
+			if (!full)
             if (*pt_ == *pl_) continue;
             
             ss.str(""); ss.clear();
@@ -849,6 +979,8 @@ void latex_tabulate_KBSM_table() {
             
     return;
 }
+        
+	
         
 // print groups of knots that share HSM and KBSM
 void print_knot_groups() {
