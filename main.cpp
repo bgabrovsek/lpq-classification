@@ -346,12 +346,24 @@ int main(int argc, const char * argv[]) {
         // print latex knot table
         if (sub_argument == 'l') {  latex_tabulate_knot_table(); }
         
-        // print latex torus HOMLFY table
+      
+        // print latex knot table for lpq
+        if (sub_argument == 'L') {  latex_tabulate_knot_table_lpq(); }
+      
+	    // print latex torus HOMLFY table  (only knots whose HSM expression differs from that of in the solid torus)
         if (sub_argument == 'h') { latex_tabulate_HOMFLY_table(); }
         
-        // print latex torus HOMLFY table
+		// print latex torus HOMLFY table 
+		if (sub_argument == 'H') { latex_tabulate_HOMFLY_table(true); }
+		
+        // print latex torus KBSM table (only knots whose KBSM expression differs from that of in the solid torus)
         if (sub_argument == 'm') {  latex_tabulate_KBSM_table(); }
     
+        // print latex torus KBSM table
+        if (sub_argument == 'M') {  latex_tabulate_KBSM_table(true); }
+		
+     
+		
         // full print knot groups
         if (sub_argument == 'f') { print_knot_groups(); }
         
