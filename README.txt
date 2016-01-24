@@ -1,6 +1,7 @@
 NAME
 
 Classification of knots in lens spaces
+(for dealing with exceptions see Exceptions folder)
 
 
 SYNOPSIS
