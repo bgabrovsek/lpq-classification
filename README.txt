@@ -95,7 +95,8 @@ knot_preprocessor_directives.h - preprocessor directives (sets architecture depe
 results.zip            - output copies (i.e. results) of the classification algorithm
 
 
-AUTHOR
+LICENCE (MIT License with Citation Requirement)
 
-Created by Bostjan Gabrovsek 31/1/13, bostjan.gabrovsek@fmf.uni-lj.si.
+Any publication, presentation, or derived work using this software must include a citation to the following paper:
+Gabrovšek, B. Tabulation of Prime Knots in Lens Spaces. Mediterr. J. Math. 14, 88 (2017). https://doi.org/10.1007/s00009-016-0814-5
 
